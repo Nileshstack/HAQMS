@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  // Fail fast: running auth with a known fallback secret is equivalent to "no auth".
+  console.error("Missing JWT Environment Variable");
   throw new Error('Missing JWT_SECRET environment variable');
 }
 
@@ -16,7 +16,7 @@ const authenticate = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    // Verify signature AND expiration (default behavior).
+    // Verify signature AND expiration 
     const decoded = jwt.verify(token, JWT_SECRET);
     
     // Add user details to request object
@@ -48,9 +48,6 @@ const authorize = (roles = []) => {
   };
 };
 
-// MISSING AUTHORIZATION CHECK: This middleware is meant for Admin actions but is empty
-// or fails to check the role, allowing any authenticated user (e.g. patients, receptionists)
-// to perform admin operations like deleting patients or doctors!
 const authorizeAdminOnlyLegacy = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Unauthorized.' });
