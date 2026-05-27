@@ -55,6 +55,8 @@ model Doctor {
 
   // MISSING INDEX: No index on department or specialization.
   // Filtering/searching by these columns does full table scans at scale.
+  @@index([department])
+  @@index([specialization])
   appointments Appointment[]
   queueTokens  QueueToken[]
 }
@@ -69,6 +71,8 @@ model Patient {
   medicalHistory String?  // Nullable — intentional crash trigger for frontend bug
   createdAt      DateTime @default(now())
 
+  @@index([phoneNumber])
+  @@index([createdAt])
   appointments Appointment[]
   queueTokens  QueueToken[]
 }
@@ -86,6 +90,9 @@ model Appointment {
 
   // MISSING INDEX: No index on (doctorId, status) — important for worklist queries.
   // MISSING INDEX: No index on patientId foreign key.
+  @@unique([doctorId, appointmentDate])
+  @@index([doctorId, status])
+  @@index([patientId])
   queueTokens QueueToken[]
 }
 
@@ -105,4 +112,6 @@ model QueueToken {
   // MISSING INDEX: No index on status — used in frequent status filter queries.
   // SCHEMA BUG: No unique constraint on (doctorId, tokenNumber, date) —
   // race condition in checkin route can produce duplicate token numbers for the same doctor+day.
+  @@index([doctorId, createdAt])
+  @@index([status])
 }

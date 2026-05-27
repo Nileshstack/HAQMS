@@ -1,58 +1,52 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const { authenticate, authorizeAdminOnlyLegacy } = require('../middleware/auth');
+const prisma = require('../prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // GET /api/patients
 // Get all patients with search, filtering, and INEFICIENT IN-MEMORY PAGINATION
 router.get('/', authenticate, async (req, res) => {
   try {
     const { search, gender } = req.query;
-    
-    // Inefficient: Retrieve all matching rows without take/skip limits from the database.
-    // Scales poorly as patient directory grows.
-    const allPatients = await prisma.patient.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
 
-    let filteredPatients = allPatients;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 50);
+    const skip = (page - 1) * limit;
 
-    // In-memory filter for search (checks name/phone/email)
+    const where = {};
     if (search) {
-      const query = search.toLowerCase();
-      filteredPatients = filteredPatients.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          p.phoneNumber.includes(query) ||
-          (p.email && p.email.toLowerCase().includes(query))
-      );
+      const q = String(search);
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { phoneNumber: { contains: q } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ];
     }
-
-    // In-memory filter for gender
     if (gender && gender !== 'All') {
-      filteredPatients = filteredPatients.filter(
-        (p) => p.gender.toLowerCase() === gender.toLowerCase()
-      );
+      where.gender = { equals: String(gender), mode: 'insensitive' };
     }
 
-    // In-memory pagination setup
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const offset = (page - 1) * limit;
-    
-    const paginatedResult = filteredPatients.slice(offset, offset + limit);
-    const totalPages = Math.ceil(filteredPatients.length / limit);
+    const [totalPatients, patients] = await prisma.$transaction([
+      prisma.patient.count({ where }),
+      prisma.patient.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    const totalPages = Math.max(Math.ceil(totalPatients / limit), 1);
 
     // Inconsistent Response style
     res.json({
       success: true,
-      patients: paginatedResult,
+      patients,
       pagination: {
         page,
         limit,
-        totalPatients: filteredPatients.length,
+        totalPatients,
         totalPages,
       },
     });

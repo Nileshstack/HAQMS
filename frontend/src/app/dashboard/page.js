@@ -98,7 +98,8 @@ export default function Dashboard() {
   // Trigger Patient List Fetch (Every keystroke trigger re-renders parent! - Performance bug)
   useEffect(() => {
     if (user.role === 'RECEPTIONIST' || user.role === 'ADMIN') {
-      fetchPatients(1);
+      const t = setTimeout(() => fetchPatients(1), 250);
+      return () => clearTimeout(t);
     }
   }, [patientSearch, patientGender]);
 

@@ -1,9 +1,8 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const { authenticate } = require('../middleware/auth');
+const prisma = require('../prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // GET /api/appointments
 // List all appointments
@@ -57,29 +56,25 @@ router.post('/', authenticate, async (req, res) => {
     // It only checks if the exact millisecond matches. If the candidate books for "2026-05-25 10:00:00"
     // and another for "2026-05-25 10:00:01", they are treated as unique!
     // Junior dev logic: "Same time bookings will be blocked."
-    const existingBooking = await prisma.appointment.findFirst({
-      where: {
-        doctorId,
-        appointmentDate: appDate,
-        status: { not: 'CANCELLED' },
-      },
-    });
-
-    if (existingBooking) {
-      return res.status(400).json({
-        error: 'Double booking blocked. Doctor already has an appointment at this exact millisecond.',
+    let appointment;
+    try {
+      appointment = await prisma.appointment.create({
+        data: {
+          patientId,
+          doctorId,
+          appointmentDate: appDate,
+          reason: reason || '',
+          status: 'PENDING',
+        },
       });
+    } catch (e) {
+      // Once the schema has a unique constraint on (doctorId, appointmentDate),
+      // Prisma throws P2002 on duplicates. This makes the API safe under concurrency.
+      if (e && e.code === 'P2002') {
+        return res.status(409).json({ error: 'Doctor already has an appointment for that slot.' });
+      }
+      throw e;
     }
-
-    const appointment = await prisma.appointment.create({
-      data: {
-        patientId,
-        doctorId,
-        appointmentDate: appDate,
-        reason: reason || '',
-        status: 'PENDING',
-      },
-    });
 
     res.status(201).json({
       message: 'Appointment booked successfully',
