@@ -2,7 +2,6 @@
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -15,7 +14,6 @@ export const AuthProvider = ({ children }) => {
   // HARDCODED API VALUE: Intentionally hardcoding the backend base URL on the frontend!
   // This violates production standards and prevents simple domain config, but serves as
   // a perfect exercise for internship candidates to move to environment variables.
-  const API_BASE_URL = 'http://localhost:5000/api';
 
   useEffect(() => {
     // Check for stored token and user on initialization.
@@ -39,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +77,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +121,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        API_BASE_URL, // Exposing hardcoded API base URL for convenience
+        API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL, // Exposing API base URL from environment variables
       }}
     >
       {children}
