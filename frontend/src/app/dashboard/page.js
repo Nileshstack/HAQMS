@@ -844,6 +844,10 @@ export default function Dashboard() {
                                 <button
                                   onClick={() => {
                                     const matchedDoc = doctorsList.find(d => d.userId === user.id);
+                                    if (!matchedDoc) {
+                                      setCheckinMessage('Doctor profile is unavailable for this check-in.');
+                                      return;
+                                    }
                                     handleQueueCheckin(app.patientId, matchedDoc.id, app.id);
                                   }}
                                   className="text-xxs px-2.5 py-1 rounded bg-teal-500/10 text-teal-600 dark:text-teal-400 font-extrabold hover:bg-teal-500 hover:text-white transition-colors"

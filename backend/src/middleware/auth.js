@@ -13,12 +13,15 @@ const authenticate = (req, res, next) => {
     return res.status(401).json({ error: 'Access denied. No token provided.' });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(' ')[1]?.trim();
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
+  }
 
   try {
-    // Verify signature AND expiration 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
+    // Verify signature, expiration, and algorithm explicitly to harden JWT parsing.
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+
     // Add user details to request object
     req.user = decoded;
     next();

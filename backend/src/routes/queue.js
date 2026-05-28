@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const prisma = require('../prisma');
 
 const router = express.Router();
@@ -34,7 +34,7 @@ router.get('/', authenticate, async (req, res) => {
 // CONCURRENCY/RACE CONDITION BUG: Token increment uses aggregate read followed by create.
 // Introduce a deliberate asynchronous delay (setTimeout) to force a wide race window
 // where concurrent check-ins assign the exact same token number.
-router.post('/checkin', authenticate, async (req, res) => {
+router.post('/checkin', authenticate, authorize(['ADMIN', 'RECEPTIONIST']), async (req, res) => {
   try {
     const { patientId, doctorId, appointmentId } = req.body;
 
@@ -84,7 +84,7 @@ router.post('/checkin', authenticate, async (req, res) => {
 
 // PATCH /api/queue/:id
 // Update token status (WAITING -> CALLING -> COMPLETED / SKIPPED)
-router.patch('/:id', authenticate, async (req, res) => {
+router.patch('/:id', authenticate, authorize(['DOCTOR', 'ADMIN']), async (req, res) => {
   try {
     const { status } = req.body;
 

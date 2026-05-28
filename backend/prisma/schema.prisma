@@ -113,5 +113,6 @@ model QueueToken {
   // SCHEMA BUG: No unique constraint on (doctorId, tokenNumber, date) —
   // race condition in checkin route can produce duplicate token numbers for the same doctor+day.
   @@index([doctorId, createdAt])
+  @@index([doctorId, status, createdAt])
   @@index([status])
 }

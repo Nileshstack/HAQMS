@@ -15,43 +15,45 @@ export default function QueueMonitor() {
   // HARDCODED API BASE URL: Duplicated from AuthContext (code duplication smell)
   const API_BASE_URL = 'http://localhost:5000/api';
 
-  const fetchQueueData = async () => {
-    try {
-      // Insecure: Fetches queue without checking credentials (it's a public dashboard, which is fine, 
-      // but it uses the hardcoded API domain)
-      const res = await fetch(`${API_BASE_URL}/queue`);
-      if (!res.ok) {
-        throw new Error('Failed to retrieve active token queue.');
-      }
-      const data = await res.json();
-      setTokens(data);
-      setError('');
-    } catch (err) {
-      console.error('Queue poll fetch error:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchQueueData = async () => {
+      try {
+        // Insecure: Fetches queue without checking credentials (it's a public dashboard, which is fine,
+        // but it uses the hardcoded API domain)
+        const res = await fetch(`${API_BASE_URL}/queue`);
+        if (!res.ok) {
+          throw new Error('Failed to retrieve active token queue.');
+        }
+        const data = await res.json();
+        if (!isMounted) return;
+        setTokens(data);
+        setError('');
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Queue poll fetch error:', err);
+        setError(err.message);
+      } finally {
+        if (!isMounted) return;
+        setLoading(false);
+      }
+    };
+
     // Initial fetch
-    fetchQueueData();
+    void fetchQueueData();
 
     // MEMORY LEAK BUG:
-    // This setInterval has NO cleanup function (does not return clearInterval).
-    // Every time this page is mounted, a new background polling timer is spun up.
-    // If the candidate navigates between Dashboard and Queue multiple times,
-    // dozens of parallel intervals will poll the database, causing memory bloat,
-    // state update crashes on unmounted components, and heavy server load.
+    // This setInterval must be cleaned up. The mounted guard prevents post-unmount updates.
     const intervalId = setInterval(() => {
-      fetchQueueData();
+      void fetchQueueData();
       setRefreshCount((prev) => prev + 1);
     }, 3000);
 
-    // Junior Developer Note: "Interval created, will run forever to keep dashboard fully synced!"
-    // Missing: return () => clearInterval(intervalId);
-    return () => clearInterval(intervalId);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Group tokens by doctor

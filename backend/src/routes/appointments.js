@@ -1,5 +1,5 @@
 const express = require('express');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const prisma = require('../prisma');
 
 const router = express.Router();
@@ -42,7 +42,7 @@ router.get('/', authenticate, async (req, res) => {
 // DESIGN BUG: Duplicate-prone schema. No unique index blocks duplicate appointment bookings.
 // In this API, we have a half-hearted verification that is easily bypassed or logically flawed,
 // allowing multiple bookings for the exact same date and doctor.
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, authorize(['ADMIN', 'RECEPTIONIST']), async (req, res) => {
   try {
     const { patientId, doctorId, appointmentDate, reason } = req.body;
 

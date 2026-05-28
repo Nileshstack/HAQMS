@@ -18,16 +18,17 @@ export const AuthProvider = ({ children }) => {
   const API_BASE_URL = 'http://localhost:5000/api';
 
   useEffect(() => {
-    // Check for stored token and user on initialization
-    const storedToken = localStorage.getItem('haqms_token');
-    const storedUser = localStorage.getItem('haqms_user');
+    // Check for stored token and user on initialization.
+    // Use session storage to avoid persisting auth credentials across browser sessions.
+    const storedToken = sessionStorage.getItem('haqms_token');
+    const storedUser = sessionStorage.getItem('haqms_user');
 
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       } catch (e) {
-        console.error('Failed to parse user details from localStorage', e);
+        console.error('Failed to parse user details from sessionStorage', e);
         logout();
       }
     }
@@ -56,9 +57,9 @@ export const AuthProvider = ({ children }) => {
       const receivedToken = data.data.token;
       const receivedUser = data.data.user;
 
-      // SECURITY ISSUE: Storing sensitive auth credentials directly in LocalStorage!
-      localStorage.setItem('haqms_token', receivedToken);
-      localStorage.setItem('haqms_user', JSON.stringify(receivedUser));
+      // SECURITY ISSUE: Avoid persisting auth credentials across browser sessions.
+      sessionStorage.setItem('haqms_token', receivedToken);
+      sessionStorage.setItem('haqms_user', JSON.stringify(receivedUser));
 
       setToken(receivedToken);
       setUser(receivedUser);
@@ -105,8 +106,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('haqms_token');
-    localStorage.removeItem('haqms_user');
+    sessionStorage.removeItem('haqms_token');
+    sessionStorage.removeItem('haqms_user');
     setToken(null);
     setUser(null);
     router.push('/login');
