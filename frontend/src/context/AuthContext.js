@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     }
     setLoading(false);
   }, []);
-
+   console.log(process.env.NEXT_PUBLIC_API_BASE_URL);
   const login = async (email, password) => {
     setLoading(true);
     setError(null);
